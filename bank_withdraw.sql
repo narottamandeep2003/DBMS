@@ -1,0 +1,55 @@
+DECLARE
+    BALANCE         ACCOUNT.USER_BALANCE%TYPE;
+    ACCOUNTID       ACCOUNT.ID%TYPE;
+    AMOUNT          NUMBER;
+    AMOUNT_DORW     NUMBER;
+    CURR_DATE       VARCHAR2(20);
+    ERROR_LESS_CASH EXCEPTION;
+BEGIN
+    ACCOUNTID:=&ACCOUNTID;
+    AMOUNT:=&AMOUNT;
+    AMOUNT_DORW:=AMOUNT;
+    SELECT
+        USER_BALANCE INTO BALANCE
+    FROM
+        ACCOUNT
+    WHERE
+        ID=ACCOUNTID;
+    IF BALANCE-AMOUNT<0 THEN
+        RAISE ERROR_LESS_CASH;
+    ELSE
+        AMOUNT:=BALANCE-AMOUNT;
+        UPDATE ACCOUNT
+        SET
+            USER_BALANCE=AMOUNT
+        WHERE
+            ID = ACCOUNTID;
+        SELECT
+            TO_CHAR (SYSDATE,
+            'DD-MM-YYYY HH24:MI:SS') INTO CURR_DATE
+        FROM
+            DUAL;
+        INSERT INTO HISTORY VALUES(
+            ACCOUNTID,
+            BALANCE,
+            AMOUNT,
+            AMOUNT_DORW,
+            CURR_DATE,
+            'WITHDRAW'
+        );
+        UPDATE ACCOUNT
+        SET
+            USER_BALANCE =AMOUNT
+        WHERE
+            ID=ACCOUNTID;
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('WITHDRAW successful');
+    END IF;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE('NO DATA FOUND');
+    WHEN ERROR_LESS_CASH THEN
+        DBMS_OUTPUT.PUT_LINE('Non-Sufficient Balance');
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('Error!');
+END;
